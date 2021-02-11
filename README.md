@@ -1,2 +1,3 @@
 # Bump-Mapping-WebGL
-Bump Mapping implementation in WebGL
+WebGL implementation of the Bump Mapping OpenGL tutorial https://learnopengl.com/Advanced-Lighting/Normal-Mapping
+
