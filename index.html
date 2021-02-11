@@ -1,0 +1,147 @@
+<!doctype html>
+<html>
+  <head>
+      <!--per ricaricare sempre la pagina da zero e non usare la cache-->
+      <META HTTP-EQUIV=”Pragma” CONTENT=”no-cache”>
+      <META HTTP-EQUIV=”Cache-Control” CONTENT=”no-cache”>
+      <link rel="shortcut icon" href="#">
+
+
+      <style>
+      body {
+            background: #dddddd;
+        }
+        #my_Canvas {
+            margin: 10px;
+            padding: 10px;
+            background: #ffffff;
+            border: thin inset #aaaaaa;
+        }
+        .container {  /*to manage text on canvas and webgl */
+          position: relative;
+        }
+        #text {. /*to manage text on canvas and webgl */
+          background-color: transparent;  /* needed because we setcanvas bg color to white */
+          position: absolute;
+          left: 100px;
+          top: 10px;
+          z-index: 10;
+        }
+      </style>
+   </head>
+<body>
+  <p> </p>
+  <br>
+  &nbsp;&nbsp;&nbsp;
+  <button id = "Button1">Increase Distance</button>
+  <button id = "Button2">Decrease Distance</button>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <button id = "Button5">Increase Field Of View</button>
+  <button id = "Button6">Decrease Field Of View</button>
+  <p> </p>
+
+
+<div class="container">
+  <canvas width="800" height="600" id="my_Canvas"></canvas>
+  <canvas width="600" height="150" id="text"></canvas>
+
+
+<!----------------------------------------------------------------------------------->
+
+<script id="vertex-shader-phong-normal-mapping" type="not-javascript">
+attribute  vec3  position;    //vertex
+attribute  vec3  normal;
+attribute  vec3  tangent;
+attribute  vec2  a_texcoord;
+
+uniform mat4 Pmatrix;
+uniform mat4 Vmatrix;
+uniform mat4 Mmatrix;
+uniform mat4 normalMat;
+
+varying vec3 lightPos;
+varying vec3 viewPos;
+
+varying vec3 normalInterp;
+varying vec3 vertPos;
+varying vec2 v_texcoord;
+varying mat3 TBN;
+
+
+
+void main(){
+	vec4 vertPos4 = Vmatrix*Mmatrix*vec4(position, 1.0);
+	vertPos = vec3(vertPos4)/vertPos4.w;
+
+	gl_Position = Pmatrix*Vmatrix*Mmatrix*vec4(position, 1.0);
+
+	vec3 T = normalize(mat3(normalMat) * tangent);
+  vec3 N = normalize(mat3(normalMat) * normal );
+  T = normalize(T - dot(T, N) * N);
+  vec3 B = cross(N, T);
+	TBN = mat3(T, B, N);
+
+	//Pass the texcoord to the fragment shader.
+	v_texcoord = a_texcoord;
+}
+</script>
+
+
+<script id="fragment-shader-phong-normal-mapping" type="not-javascript">
+precision mediump float;
+varying vec3 normalInterp;
+varying vec3 vertPos;
+varying vec2 v_texcoord;
+
+varying vec3 viewPos;
+varying vec3 lightPos;
+varying mat3 TBN;
+
+//material
+uniform vec3 Ka;
+uniform vec3 Kd;
+uniform vec3 Ks;
+uniform float shinessVal;
+uniform int mode;
+
+//light
+uniform vec3 ambientColor;
+uniform vec3 diffuseColor;
+uniform vec3 specularColor;
+
+uniform sampler2D normalMap;
+
+void main(){
+
+	vec3  N = texture2D(normalMap, v_texcoord).rgb;
+	N = N * 2.0 - 1.0;
+  N = normalize(TBN*N);
+
+
+	vec3 L = normalize(lightPos-vertPos);
+	float lambertian = max(dot(N,L), 0.0);
+	float specular=0.0;
+	if(lambertian > 0.0){
+		vec3 R = reflect(-L,N);
+		vec3 V = normalize(viewPos-vertPos);
+		vec3 halfwayDir = normalize(L+V);
+		specular =  pow(max(dot(N, halfwayDir), 0.0), shinessVal);
+	}
+
+
+	gl_FragColor = vec4((Ka*ambientColor) + (Kd*lambertian*diffuseColor) + Ks*specular*specularColor, 1.0);
+
+	if(mode==2) gl_FragColor = vec4(Ka*ambientColor,1.0);
+	if(mode==3) gl_FragColor = vec4(Kd*lambertian*diffuseColor,1.0);
+	if(mode==4) gl_FragColor = vec4(Ks*specular*specularColor,1.0);
+}
+</script>
+
+
+<script type="text/javascript" 	src="resources/webgl-utils.js"></script>
+<script type="text/javascript" 	src="resources/m4.js"></script>
+<script src="main.js"></script>
+
+
+</body>
+</html>
